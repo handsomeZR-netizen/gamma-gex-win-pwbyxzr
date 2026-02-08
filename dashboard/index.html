@@ -3,832 +3,182 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gamma 策略看板 / Strategy Dashboard</title>
+  <title>Gamma 策略看板</title>
   <style>
-    :root {
-      --bg: #edf3f9;
-      --panel: #f8fbff;
-      --card: #ffffff;
-      --line: #d7e2ef;
-      --text: #0f1825;
-      --muted: #5f6b7a;
-      --blue: #0a5e9f;
-      --green: #0f8e63;
-      --red: #c1492f;
-      --amber: #a56b00;
-      --green-soft: #dbf7ed;
-      --red-soft: #fee5e0;
-      --amber-soft: #fff2d9;
-      --shadow: 0 8px 20px rgba(15, 24, 37, 0.06);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      color: var(--text);
-      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      background:
-        radial-gradient(circle at 88% -12%, #d9e9fb 0%, transparent 40%),
-        linear-gradient(140deg, #f5f9fd 0%, var(--bg) 45%, #e7eef6 100%);
-    }
-    .container {
-      max-width: 1580px;
-      margin: 0 auto;
-      padding: 18px 16px 28px;
-    }
-    .header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    h1 {
-      margin: 0;
-      font-size: 30px;
-      letter-spacing: 0.3px;
-    }
-    .sub {
-      margin-top: 2px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 8px;
-      box-shadow: var(--shadow);
-    }
-    select, button {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      font-size: 14px;
-      padding: 8px 11px;
-      background: #fff;
-      color: var(--text);
-      cursor: pointer;
-    }
-    button.primary {
-      border: none;
-      color: #fff;
-      background: linear-gradient(180deg, #1673b8, #0d609f);
-    }
-    .status {
-      font-size: 12px;
-      color: var(--muted);
-      margin-left: 8px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
-      box-shadow: var(--shadow);
-    }
-    .span-3 { grid-column: span 3; }
-    .span-4 { grid-column: span 4; }
-    .span-5 { grid-column: span 5; }
-    .span-6 { grid-column: span 6; }
-    .span-7 { grid-column: span 7; }
-    .span-8 { grid-column: span 8; }
-    .span-12 { grid-column: span 12; }
-    .k {
-      margin-bottom: 6px;
-      color: var(--muted);
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .v {
-      font-size: 29px;
-      font-weight: 700;
-      line-height: 1.1;
-    }
-    .mono { font-family: Consolas, "Courier New", monospace; }
-    .muted { color: var(--muted); }
-    .small { font-size: 12px; }
-    .pill {
-      display: inline-block;
-      margin-top: 8px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #fff;
-      background: var(--blue);
-    }
-    .pill.good { background: var(--green); }
-    .pill.bad { background: var(--red); }
-    .pill.soft { background: var(--amber); }
-    .action-main {
-      font-size: 30px;
-      font-weight: 800;
-      line-height: 1;
-      margin-top: 2px;
-      letter-spacing: 0.4px;
-    }
-    .action-main.good { color: var(--green); }
-    .action-main.bad { color: var(--red); }
-    .chart {
-      height: 340px;
-      width: 100%;
-      border-radius: 10px;
-      border: 1px solid var(--line);
-      background: linear-gradient(180deg, #fcfeff, #f5f9fd);
-    }
-    .chart.small { height: 250px; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    th, td {
-      border-bottom: 1px solid var(--line);
-      padding: 7px 5px;
-      text-align: left;
-      white-space: nowrap;
-      max-width: 320px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    th {
-      color: var(--muted);
-      font-weight: 700;
-    }
-    .checks-flow {
-      display: flex;
-      align-items: stretch;
-      overflow-x: auto;
-      padding-bottom: 4px;
-    }
-    .check-node {
-      position: relative;
-      min-width: 240px;
-      max-width: 300px;
-      padding: 10px 14px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      margin-right: 26px;
-      background: #fff;
-      flex-shrink: 0;
-    }
-    .check-node::after {
-      content: ">";
-      position: absolute;
-      right: -19px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #8a99ac;
-      font-weight: 700;
-    }
-    .check-node:last-child { margin-right: 0; }
-    .check-node:last-child::after { content: ""; }
-    .check-node.pass { border-color: #bfead8; background: var(--green-soft); }
-    .check-node.fail { border-color: #f3c2b8; background: var(--red-soft); }
-    .check-node.soft { border-color: #f3ddb2; background: var(--amber-soft); }
-    .check-title {
-      font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-    .check-detail {
-      font-size: 12px;
-      color: #2a3748;
-      white-space: normal;
-      line-height: 1.35;
-    }
-    .reason-list {
-      margin: 8px 0 0 17px;
-      padding: 0;
-      font-size: 13px;
-    }
-    .reason-list li { margin-bottom: 5px; }
-    .split {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    .debug-toolbar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-      flex-wrap: wrap;
-    }
-    .debug-panel {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 10px;
-      background: #fbfdff;
-    }
-    .debug-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-    .debug-box {
-      border: 1px solid var(--line);
-      border-radius: 9px;
-      background: #fff;
-      padding: 8px;
-    }
-    .debug-title {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 5px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    pre {
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-size: 11px;
-      max-height: 210px;
-      overflow: auto;
-      color: #163049;
-    }
-    .hidden { display: none; }
-    .footer {
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    @media (max-width: 1200px) {
-      .span-3, .span-4, .span-5, .span-6, .span-7, .span-8 { grid-column: span 12; }
-      .debug-grid { grid-template-columns: 1fr; }
-      .chart { height: 300px; }
-      .v { font-size: 24px; }
-      .action-main { font-size: 26px; }
-    }
+    :root{--bg:#eef3f8;--card:#fff;--line:#d6e0ea;--ink:#0f1a28;--muted:#5c6c80;--blue:#0f6ab6;--good:#0f8e63;--warn:#a76d08;--bad:#c24734;--shadow:0 8px 22px rgba(13,23,36,.08)}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#f8fbff 0%,#eef3f8 55%,#e7eef6 100%);color:var(--ink);font-family:"IBM Plex Sans","Noto Sans SC","Microsoft YaHei",sans-serif}
+    .app{max-width:1650px;margin:0 auto;padding:16px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    h1{margin:0;font-size:28px}.sub{font-size:13px;color:var(--muted);margin-top:3px}
+    .ctrl{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:var(--shadow)}
+    select,button{border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:#fff;color:var(--ink);font-size:14px;cursor:pointer}
+    button.primary{border:0;color:#fff;background:linear-gradient(180deg,#1f7fc8,#1268ad)}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:#fff;color:var(--muted)}
+    .chip.warn{background:#fff2dd;border-color:#efd9ad;color:#70480d}.chip.bad{background:#fee8e4;border-color:#f2c8bf;color:#7f2b1f}.hidden{display:none}
+    .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+    .span2{grid-column:span 2}.span3{grid-column:span 3}.span4{grid-column:span 4}.span6{grid-column:span 6}.span8{grid-column:span 8}.span12{grid-column:span 12}
+    .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}.v{font-size:30px;font-weight:760;line-height:1.1}.small{font-size:12px;color:var(--muted)}
+    .action{font-size:32px;font-weight:820}.trade{color:var(--good)}.no-trade{color:var(--bad)}.unknown{color:var(--warn)}
+    .bar{height:8px;border-radius:999px;background:#e9eff6;overflow:hidden;margin-top:8px}.fill{height:100%;width:0;background:linear-gradient(90deg,#f04f32,#e2b043 45%,#1ba66f 85%);transition:width .3s}
+    .chart{width:100%;height:330px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(180deg,#fcfeff,#f6fafe)}
+    .timeline{display:flex;gap:10px;overflow-x:auto;min-height:245px;padding-bottom:4px}
+    .node{width:250px;flex-shrink:0;border:1px solid var(--line);border-radius:10px;padding:9px;background:#fff;position:relative}
+    .node::after{content:">";position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:#93a3b8;font-weight:700}.node:last-child::after{content:""}
+    .node.pass{border-color:#c7e8da;background:#e2f6ee}.node.warning{border-color:#f1ddb5;background:#fff3dd}.node.blocker{border-color:#f2c5bc;background:#fee7e2}
+    .t1{font-size:13px;font-weight:700;display:flex;justify-content:space-between;gap:8px}.tag{font-size:11px;border:1px solid rgba(23,41,62,.2);border-radius:999px;padding:1px 7px;background:rgba(255,255,255,.6)}
+    .t2{font-size:12px;line-height:1.35;color:#203549;min-height:45px;margin-top:4px}.t3{font-size:11px;color:#42586e;margin-top:5px}
+    .table{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{text-align:left;border-bottom:1px solid var(--line);padding:7px 5px;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
+    th{color:var(--muted);position:sticky;top:0;background:#fff}.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+    .debug{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fbfdff}.dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .dbox{border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff}.dt{font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase}
+    pre{margin:0;font-size:11px;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;color:#17334c}
+    .foot{margin-top:10px;font-size:12px;color:var(--muted)}
+    @media (max-width:1260px){.span2,.span3,.span4,.span6,.span8{grid-column:span 12}.dgrid{grid-template-columns:1fr}.chart{height:300px}}
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
+  <div class="app">
+    <div class="top">
       <div>
-        <h1>Gamma 策略看板 / Strategy Dashboard</h1>
-        <div class="sub">中文业务视图 + English technical fields，支持完整策略链路与调试面板。</div>
+        <h1>Gamma 策略可视化看板</h1>
+        <div class="sub">规则链路、交易信号与调试统计一体化视图。</div>
       </div>
-      <div class="controls">
-        <select id="indexSelect">
-          <option value="SPX">SPX</option>
-          <option value="NDX">NDX</option>
-        </select>
-        <button id="refreshBtn" class="primary">立即刷新 / Refresh</button>
-        <span id="headerStatus" class="status">初始化中 / Initializing...</span>
+      <div class="ctrl">
+        <select id="indexSelect"><option value="SPX">SPX</option><option value="NDX">NDX</option></select>
+        <button id="refreshBtn" class="primary">立即刷新</button>
+        <button id="toggleDebugBtn">展开调试</button>
       </div>
     </div>
-
+    <div class="chips">
+      <span id="statusChip" class="chip">状态: 初始化中</span>
+      <span id="sourceChip" class="chip">Source: -</span>
+      <span id="refreshChip" class="chip">Refresh: -</span>
+      <span id="staleChip" class="chip warn hidden">Stale: refresh_in_progress</span>
+      <span id="errorChip" class="chip bad hidden">Error: -</span>
+    </div>
     <div class="grid">
-      <div class="card span-3">
-        <div class="k">现价与Pin / Spot & Pin</div>
-        <div id="spotValue" class="v">-</div>
-        <div id="pinMeta" class="small muted">Pin - | Distance -</div>
+      <div class="card span2"><div class="k">现价 Spot</div><div id="spotValue" class="v">-</div><div id="spotMeta" class="small">-</div></div>
+      <div class="card span2"><div class="k">GEX Pin</div><div id="pinValue" class="v">-</div><div id="pinMeta" class="small">Distance -</div></div>
+      <div class="card span2"><div class="k">VIX</div><div id="vixValue" class="v">-</div><div id="biasMeta" class="small">Bias -</div></div>
+      <div class="card span3"><div class="k">交易动作 Trade Action</div><div id="actionMain" class="action unknown">-</div><div id="actionReason" class="small">-</div></div>
+      <div class="card span3">
+        <div class="k">决策评分 Decision Score</div><div id="scoreValue" class="v" style="font-size:22px">-</div>
+        <div class="bar"><div id="scoreFill" class="fill"></div></div><div id="scoreMeta" class="small">Checks -</div>
       </div>
-
-      <div class="card span-3">
-        <div class="k">波动率与偏向 / VIX & Bias</div>
-        <div id="vixValue" class="v">-</div>
-        <span id="biasPill" class="pill">UNKNOWN</span>
+      <div class="card span8"><div class="k">GEX 结构 / Net Gamma Levels</div><div id="gexChart" class="chart"></div></div>
+      <div class="card span4"><div class="k">策略规则链路 / Rule Timeline</div><div id="timelineFlow" class="timeline"></div></div>
+      <div class="card span12"><div class="k">趋势图 / Spot · Pin · VIX · Signal Events</div><div id="trendChart" class="chart"></div></div>
+      <div class="card span6">
+        <div class="k">高成交合约 Top Volume</div>
+        <div class="table"><table><thead><tr><th>Type</th><th>Expiry</th><th>Strike</th><th>Volume</th><th>OI</th><th>IV</th><th>Delta</th><th>Gamma</th></tr></thead><tbody id="topVolTable"></tbody></table></div>
       </div>
-
-      <div class="card span-3">
-        <div class="k">交易动作 / Trade Action</div>
-        <div id="actionMain" class="action-main">-</div>
-        <div id="actionReason" class="small muted">-</div>
+      <div class="card span6">
+        <div class="k">高持仓合约 Top Open Interest</div>
+        <div class="table"><table><thead><tr><th>Type</th><th>Expiry</th><th>Strike</th><th>OI</th><th>Volume</th><th>IV</th><th>Delta</th><th>Gamma</th></tr></thead><tbody id="topOiTable"></tbody></table></div>
       </div>
-
-      <div class="card span-3">
-        <div class="k">核心策略 / Core Strategy</div>
-        <div id="coreStrategy" class="v" style="font-size:22px;">-</div>
-        <div id="coreMeta" class="small muted">-</div>
+      <div class="card span12">
+        <div class="k">最近信号历史 / Recent Signal History</div>
+        <div class="table"><table><thead><tr><th>Time</th><th>Spot</th><th>Pin</th><th>Bias</th><th>Action</th><th>Score</th><th>Primary Reason</th></tr></thead><tbody id="historyTable"></tbody></table></div>
       </div>
-
-      <div class="card span-7">
-        <div class="k">GEX结构图 / GEX Structure (Top Levels)</div>
-        <div id="gexChart" class="chart"></div>
-      </div>
-
-      <div class="card span-5 split">
-        <div>
-          <div class="k">策略详情 / Core Setup Details</div>
-          <table>
-            <tbody id="coreTable"></tbody>
-          </table>
-        </div>
-        <div>
-          <div class="k">信号原因 / Signal Reasons</div>
-          <div id="reasonHead" class="mono small"></div>
-          <ul id="reasonList" class="reason-list"></ul>
-        </div>
-      </div>
-
-      <div class="card span-12">
-        <div class="k">决策流程 / Decision Flow (Checks)</div>
-        <div id="checksFlow" class="checks-flow"></div>
-      </div>
-
-      <div class="card span-12">
-        <div class="k">调试面板 / Debug Panel</div>
-        <div class="debug-toolbar">
-          <button id="toggleDebugBtn">展开调试 / Show Debug</button>
-          <button id="refreshDebugBtn">刷新调试 / Reload Debug</button>
-          <button id="copyDebugBtn">复制调试摘要 / Copy Debug</button>
-        </div>
-        <div id="debugPanel" class="debug-panel hidden">
-          <div class="debug-grid">
-            <div class="debug-box">
-              <div class="debug-title">服务摘要 / Service Summary</div>
-              <pre id="debugSummary">-</pre>
-            </div>
-            <div class="debug-box">
-              <div class="debug-title">最近错误 / Recent Errors</div>
-              <pre id="debugErrors">-</pre>
-            </div>
-            <div class="debug-box">
-              <div class="debug-title">最近事件 / Recent Events</div>
-              <pre id="debugEvents">-</pre>
-            </div>
-            <div class="debug-box">
-              <div class="debug-title">Snapshot JSON (Truncated)</div>
-              <pre id="debugSnapshot">-</pre>
-            </div>
+      <div class="card span12">
+        <div class="toolbar"><button id="refreshDebugBtn">刷新调试数据</button><button id="copyDebugBtn">复制调试摘要</button></div>
+        <div id="debugPanel" class="debug hidden">
+          <div class="dgrid">
+            <div class="dbox"><div class="dt">服务摘要 / Service Summary</div><pre id="debugSummary">-</pre></div>
+            <div class="dbox"><div class="dt">错误聚类 / Error Groups</div><pre id="debugErrorGroups">-</pre></div>
+            <div class="dbox"><div class="dt">规则统计 / Rule Stats</div><pre id="debugRuleStats">-</pre></div>
+            <div class="dbox"><div class="dt">最近事件 / Recent Events</div><pre id="debugEvents">-</pre></div>
           </div>
         </div>
       </div>
-
-      <div class="card span-6">
-        <div class="k">成交量前十 / Top Volume Contracts</div>
-        <table>
-          <thead>
-            <tr>
-              <th>方向 Side</th><th>到期 Expiry</th><th>行权 Strike</th><th>成交 Vol</th><th>持仓 OI</th><th>IV</th><th>Delta</th><th>Gamma</th>
-            </tr>
-          </thead>
-          <tbody id="topVolTable"></tbody>
-        </table>
-      </div>
-
-      <div class="card span-6">
-        <div class="k">持仓量前十 / Top Open Interest Contracts</div>
-        <table>
-          <thead>
-            <tr>
-              <th>方向 Side</th><th>到期 Expiry</th><th>行权 Strike</th><th>持仓 OI</th><th>成交 Vol</th><th>IV</th><th>Delta</th><th>Gamma</th>
-            </tr>
-          </thead>
-          <tbody id="topOiTable"></tbody>
-        </table>
-      </div>
-
-      <div class="card span-12 split">
-        <div>
-          <div class="k">历史回放 / History Replay (Spot vs Pin)</div>
-          <div id="historyChart" class="chart small"></div>
-        </div>
-        <div>
-          <div class="k">最近快照 / Recent Snapshots</div>
-          <table>
-            <thead>
-              <tr>
-                <th>时间 Time</th><th>现价 Spot</th><th>Pin</th><th>偏向 Bias</th><th>策略 Core</th><th>动作 Action</th><th>主因 Primary Reason</th>
-              </tr>
-            </thead>
-            <tbody id="historyTable"></tbody>
-          </table>
-        </div>
-      </div>
     </div>
-
-    <div id="footer" class="footer">加载中 / Loading...</div>
+    <div id="footer" class="foot">加载中...</div>
   </div>
-
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
   <script>
-    const refreshMs = 12000;
-    let timer = null;
-    let gexChart = null;
-    let historyChart = null;
-    let latestSnapshot = null;
-    let latestDebug = null;
-
-    const CHECK_LABELS = {
-      market_open_day: "交易日 / Market Open Day",
-      entry_cutoff: "入场截止 / Entry Cutoff",
-      absolute_cutoff: "绝对截止 / Absolute Cutoff",
-      timing_blackout: "时段过滤 / Timing Window",
-      vix_available: "VIX可用 / VIX Available",
-      vix_floor: "VIX底线 / VIX Floor",
-      vix_spike: "VIX突增 / VIX Spike Filter",
-      realized_volatility: "实现波动率 / Realized Volatility",
-      expected_move: "预期波动 / Expected Move",
-      rsi: "RSI过滤 / RSI Filter",
-      friday_policy: "周五策略 / Friday Policy",
-      consecutive_down_days: "连跌天数 / Down Days",
-      gap_size: "跳空幅度 / Gap Size",
-      gex_pin: "GEX Pin可用 / GEX Pin",
-      core_signal: "核心信号 / Core Signal",
-      core_strategy: "核心策略 / Core Strategy",
-      short_strike_proximity: "短腿距离 / Short Strike Proximity",
-    };
-
-    const CHECK_ORDER = [
-      "market_open_day",
-      "entry_cutoff",
-      "absolute_cutoff",
-      "timing_blackout",
-      "vix_available",
-      "vix_floor",
-      "vix_spike",
-      "realized_volatility",
-      "expected_move",
-      "rsi",
-      "friday_policy",
-      "consecutive_down_days",
-      "gap_size",
-      "gex_pin",
-      "core_signal",
-      "core_strategy",
-      "short_strike_proximity",
-    ];
-
-    function fmt(v, d = 2) {
-      if (v === null || v === undefined || Number.isNaN(Number(v))) return "-";
-      return Number(v).toFixed(d);
+    const REFRESH_MS = 12000;
+    let timer = null, gexChart = null, trendChart = null, latestSnapshot = null, latestHistory = null, latestDebug = null;
+    const RULE_ORDER = ["market_open_day","entry_cutoff","absolute_cutoff","timing_blackout","vix_available","vix_floor","vix_spike","realized_volatility","expected_move","rsi","friday_policy","consecutive_down_days","gap_size","gex_pin","core_signal","core_strategy","short_strike_proximity"];
+    const RULE_LABELS = {market_open_day:["交易日","Market Open Day"],entry_cutoff:["入场截止","Entry Cutoff"],absolute_cutoff:["绝对截止","Absolute Cutoff"],timing_blackout:["时段黑窗","Timing Blackout"],vix_available:["VIX可用","VIX Available"],vix_floor:["VIX下限","VIX Floor"],vix_spike:["波动率尖峰","VIX Spike"],realized_volatility:["实现波动率","Realized Volatility"],expected_move:["预期波动","Expected Move"],rsi:["RSI区间","RSI Range"],friday_policy:["周五策略","Friday Policy"],consecutive_down_days:["连续下跌天数","Consecutive Down Days"],gap_size:["开盘缺口","Gap Size"],gex_pin:["GEX锚点","GEX Pin"],core_signal:["核心信号","Core Signal"],core_strategy:["策略可执行","Core Strategy"],short_strike_proximity:["短腿距离","Short Strike Proximity"]};
+    const fmt = (v,d=2)=>Number.isFinite(Number(v))?Number(v).toFixed(d):"-";
+    const intFmt = (v)=>Number.isFinite(Number(v))?Math.round(Number(v)).toLocaleString():"-";
+    const esc = (t)=>String(t??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#39;");
+    const compactJson = (v,m=7000)=>{try{const s=JSON.stringify(v,null,2);return s.length<=m?s:s.slice(0,m)+"\\n...<truncated>"}catch{return String(v)}};
+    function ensureCharts(){if(!window.echarts)return;if(!gexChart)gexChart=echarts.init(document.getElementById("gexChart"));if(!trendChart)trendChart=echarts.init(document.getElementById("trendChart"))}
+    function setStatus(text,cls=""){const el=document.getElementById("statusChip");el.className="chip";if(cls)el.classList.add(cls);el.textContent=`状态: ${text}`}
+    function setAction(action, reason){const el=document.getElementById("actionMain");const v=String(action||"-").toUpperCase();el.textContent=v;el.className="action";if(v==="TRADE")el.classList.add("trade");else if(v==="NO_TRADE")el.classList.add("no-trade");else el.classList.add("unknown");document.getElementById("actionReason").textContent=reason||"-"}
+    function toTimeline(snapshot){
+      const ui=snapshot?.strategy_ui||snapshot?.strategy?.ui||{};if(Array.isArray(ui.timeline)&&ui.timeline.length)return ui.timeline;
+      const checks=snapshot?.strategy?.checks||snapshot?.strategy?.tradeable?.checks||{};
+      const e=Object.entries(checks),sorted=[...RULE_ORDER.filter(k=>checks[k]).map(k=>[k,checks[k]]),...e.filter(([k])=>!RULE_ORDER.includes(k))];
+      return sorted.map(([name,check],i)=>{const ok=!!check?.ok,blocking=check?.blocking!==false,l=RULE_LABELS[name]||[name,name];return{order:i+1,name,label_cn:l[0],label_en:l[1],ok,blocking,detail:check?.detail||(ok?"Check passed":"Check failed"),severity:ok?"pass":(blocking?"blocker":"warning"),ts_local:snapshot?.timestamp_local||null}});
     }
-
-    function intFmt(v) {
-      if (v === null || v === undefined || Number.isNaN(Number(v))) return "-";
-      return Number(v).toLocaleString();
+    function renderHeader(snapshot){
+      const market=snapshot?.market||{},gex=snapshot?.gex||{},ui=snapshot?.strategy_ui||{},event=snapshot?.strategy_event||{},sys=snapshot?.system||{};
+      document.getElementById("spotValue").textContent=fmt(market.spot,2);document.getElementById("pinValue").textContent=fmt(gex.pin,2);document.getElementById("vixValue").textContent=fmt(market.vix,2);
+      document.getElementById("spotMeta").textContent=snapshot?.index?.code||"-";document.getElementById("pinMeta").textContent=`Distance ${fmt(gex.distance_to_pin,2)}`;document.getElementById("biasMeta").textContent=`Bias ${gex.direction_bias||"-"}`;
+      setAction(event.action||snapshot?.strategy?.tradeable?.action,event.primary_reason||snapshot?.strategy?.tradeable?.primary_reason);
+      const score=Number(ui.decision_score);document.getElementById("scoreValue").textContent=Number.isFinite(score)?`${score.toFixed(1)} / 100`:"-";
+      document.getElementById("scoreFill").style.width=Number.isFinite(score)?`${Math.max(0,Math.min(100,score))}%`:"0%";
+      document.getElementById("scoreMeta").textContent=`Pass ${ui.passed_count??"-"} | Block ${ui.blocking_fail_count??"-"} | Warn ${ui.soft_warn_count??"-"}`;
+      document.getElementById("sourceChip").textContent=`Source: ${sys.source||"schwab"}`;document.getElementById("refreshChip").textContent=`Refresh: ${sys.refresh_seconds||12}s`;
+      const stale=document.getElementById("staleChip");if(sys.stale){stale.classList.remove("hidden");stale.textContent=`Stale: ${sys.stale_reason||"yes"}`}else stale.classList.add("hidden");
+      const error=document.getElementById("errorChip");if(sys.error){error.classList.remove("hidden");error.textContent=`Error: ${sys.error}`}else error.classList.add("hidden");
     }
-
-    function row(k, v) {
-      return `<tr><th>${k}</th><td>${v}</td></tr>`;
+    function renderTimeline(snapshot){
+      const t=toTimeline(snapshot),c=document.getElementById("timelineFlow");if(!t.length){c.innerHTML='<div class="small">暂无规则链路数据 / No rule timeline.</div>';return}
+      c.innerHTML=t.map(x=>{const state=x.severity||(x.ok?"pass":(x.blocking?"blocker":"warning")),tag=x.ok?"PASS":(x.blocking?"BLOCK":"WARN");return `<div class="node ${state}"><div class="t1"><span>${esc((x.label_cn||x.name)+' / '+(x.label_en||x.name))}</span><span class="tag">${esc(tag)}</span></div><div class="t2">${esc(x.detail||"-")}</div><div class="t3">#${x.order||"-"} · ${x.blocking?"Blocking":"Soft"} · ${esc(x.ts_local||"-")}</div></div>`}).join("");
     }
-
-    function compactJson(v, maxLen = 5000) {
-      let txt = JSON.stringify(v ?? null, null, 2);
-      if (txt.length > maxLen) txt = txt.slice(0, maxLen) + "\n... (truncated)";
-      return txt;
+    function renderGex(snapshot){
+      ensureCharts();if(!gexChart){document.getElementById("gexChart").textContent="图表库未加载";return}
+      const g=snapshot?.gex||{},lv=(g.top_levels||[]).slice().sort((a,b)=>Number(a.strike)-Number(b.strike));
+      const labels=lv.map(x=>String(x.strike)),vals=lv.map(x=>Number(x.gex_billion)),colors=vals.map(v=>v>=0?"#138d67":"#c24c37"),marks=[];
+      if(Number.isFinite(Number(g.pin)))marks.push({name:"PIN",xAxis:String(g.pin),lineStyle:{color:"#0f6ab6"}});if(Number.isFinite(Number(g.call_wall)))marks.push({name:"Call Wall",xAxis:String(g.call_wall),lineStyle:{color:"#1b9f6f"}});if(Number.isFinite(Number(g.put_wall)))marks.push({name:"Put Wall",xAxis:String(g.put_wall),lineStyle:{color:"#c24c37"}});
+      gexChart.setOption({animationDuration:220,grid:{top:28,left:52,right:22,bottom:36},tooltip:{trigger:"axis"},xAxis:{type:"category",data:labels,axisLabel:{fontSize:11}},yAxis:{type:"value",name:"GEX(B)"},series:[{type:"bar",data:vals,itemStyle:{borderRadius:[4,4,0,0],color:(p)=>colors[p.dataIndex]},markLine:marks.length?{symbol:["none","none"],label:{formatter:"{b}",color:"#31465f"},data:marks}:undefined}]});
     }
-
-    function hasEcharts() {
-      return !!window.echarts;
+    function renderTrend(items){
+      ensureCharts();if(!trendChart){document.getElementById("trendChart").textContent="图表库未加载";return}
+      const s=(items||[]).slice().reverse(),lab=s.map(x=>(x.timestamp_local||"").slice(11)),spot=s.map(x=>Number(x?.market?.spot)),pin=s.map(x=>Number(x?.gex?.pin)),vix=s.map(x=>Number(x?.market?.vix)),marks=[];
+      s.forEach((x,i)=>{const a=String(x?.strategy_event?.action||x?.strategy?.tradeable?.action||"");if(a.toUpperCase()==="TRADE")marks.push({coord:[lab[i],Number(x?.market?.spot)],value:"TRADE"})});
+      trendChart.setOption({animationDuration:220,grid:{top:30,left:56,right:56,bottom:42},tooltip:{trigger:"axis"},legend:{top:4,right:8,textStyle:{fontSize:11}},xAxis:{type:"category",data:lab,boundaryGap:false,axisLabel:{fontSize:10}},yAxis:[{type:"value",scale:true,name:"Spot/Pin"},{type:"value",scale:true,name:"VIX"}],series:[{name:"Spot",type:"line",yAxisIndex:0,smooth:true,showSymbol:false,lineStyle:{width:2,color:"#0f6ab6"},data:spot.map(v=>Number.isFinite(v)?v:null),markPoint:marks.length?{symbol:"circle",symbolSize:10,itemStyle:{color:"#16a46e"},label:{show:false},data:marks}:undefined},{name:"Pin",type:"line",yAxisIndex:0,smooth:true,showSymbol:false,lineStyle:{width:2,color:"#c24c37"},data:pin.map(v=>Number.isFinite(v)?v:null)},{name:"VIX",type:"line",yAxisIndex:1,smooth:true,showSymbol:false,lineStyle:{width:2,color:"#98620b"},data:vix.map(v=>Number.isFinite(v)?v:null)}]});
     }
-
-    function ensureCharts() {
-      if (!hasEcharts()) return;
-      if (!gexChart) gexChart = echarts.init(document.getElementById("gexChart"));
-      if (!historyChart) historyChart = echarts.init(document.getElementById("historyChart"));
+    function renderTables(snapshot){
+      const opt=snapshot?.options||{},vol=opt.top_volume_contracts||[],oi=opt.top_open_interest_contracts||[];
+      const rows=(arr,f1,f2)=>!arr.length?'<tr><td colspan="8" class="small">暂无数据 / No data</td></tr>':arr.slice(0,12).map(x=>`<tr><td>${esc(x.side||"-")}</td><td>${esc(x.expiry||"-")}</td><td>${fmt(x.strike,2)}</td><td>${intFmt(x[f1])}</td><td>${intFmt(x[f2])}</td><td>${fmt(x.iv,4)}</td><td>${fmt(x.delta,3)}</td><td>${fmt(x.gamma,5)}</td></tr>`).join("");
+      document.getElementById("topVolTable").innerHTML=rows(vol,"volume","open_interest");document.getElementById("topOiTable").innerHTML=rows(oi,"open_interest","volume");
     }
-
-    function setActionUi(action, reason) {
-      const actionMain = document.getElementById("actionMain");
-      const merged = action ? `${action} / ${action === "TRADE" ? "可交易" : action === "NO_TRADE" ? "不交易" : "未知"}` : "-";
-      actionMain.textContent = merged;
-      actionMain.className = "action-main";
-      if (action === "TRADE") actionMain.classList.add("good");
-      if (action === "NO_TRADE") actionMain.classList.add("bad");
-      document.getElementById("actionReason").textContent = reason || "-";
+    function renderHistory(items){
+      if(!items?.length){document.getElementById("historyTable").innerHTML='<tr><td colspan="7" class="small">暂无历史 / No history yet</td></tr>';return}
+      document.getElementById("historyTable").innerHTML=items.slice(0,50).map(x=>{const a=x?.strategy_event?.action||x?.strategy?.tradeable?.action||"-",score=x?.strategy_event?.decision_score??x?.strategy_ui?.decision_score,r=x?.strategy_event?.primary_reason||x?.strategy?.tradeable?.primary_reason||"-";return`<tr><td>${esc(x.timestamp_local||"-")}</td><td>${fmt(x?.market?.spot,2)}</td><td>${fmt(x?.gex?.pin,2)}</td><td>${esc(x?.gex?.direction_bias||"-")}</td><td>${esc(a)}</td><td>${Number.isFinite(Number(score))?Number(score).toFixed(1):"-"}</td><td>${esc(r)}</td></tr>`}).join("");
     }
-
-    function renderChecks(checks) {
-      const container = document.getElementById("checksFlow");
-      const entries = checks && typeof checks === "object" ? Object.entries(checks) : [];
-      if (!entries.length) {
-        container.innerHTML = `<div class="muted small">暂无检查项 / No checks available.</div>`;
-        return;
-      }
-
-      const known = CHECK_ORDER.filter((k) => checks[k]).map((k) => [k, checks[k]]);
-      const extra = entries.filter(([k]) => !CHECK_ORDER.includes(k));
-      const sorted = known.concat(extra);
-
-      container.innerHTML = sorted.map(([name, check]) => {
-        const label = CHECK_LABELS[name] || `${name} / ${name}`;
-        const ok = !!check?.ok;
-        const blocking = check?.blocking !== false;
-        const cls = blocking ? (ok ? "pass" : "fail") : "soft";
-        return `
-          <div class="check-node ${cls}">
-            <div class="check-title">${label}</div>
-            <div class="check-detail">${check?.detail || "-"}</div>
-          </div>
-        `;
-      }).join("");
+    function groupErrors(errors){const g={api:[],strategy:[],runtime:[]};(errors||[]).forEach(e=>{const m=`${e?.event||""} ${e?.error||""} ${e?.message||""}`.toLowerCase();if(m.includes("snapshot_refresh_failed")||m.includes("schwab"))g.api.push(e);else if(m.includes("strategy"))g.strategy.push(e);else g.runtime.push(e)});return g}
+    function renderDebug(payload){
+      latestDebug=payload;if(!payload||typeof payload!=="object"){document.getElementById("debugSummary").textContent="No debug payload.";document.getElementById("debugErrorGroups").textContent="-";document.getElementById("debugRuleStats").textContent="-";document.getElementById("debugEvents").textContent="-";return}
+      document.getElementById("debugSummary").textContent=compactJson({index:payload.index,service:payload.service,snapshot_summary:payload.snapshot_summary,log_files:payload.log_files},4200);
+      const grouped=groupErrors(payload.recent_errors||[]);document.getElementById("debugErrorGroups").textContent=compactJson({api_errors:grouped.api.length,strategy_errors:grouped.strategy.length,runtime_errors:grouped.runtime.length,latest_api:grouped.api[0]||null,latest_strategy:grouped.strategy[0]||null,latest_runtime:grouped.runtime[0]||null},4200);
+      document.getElementById("debugRuleStats").textContent=compactJson(payload.rule_stats||[],4200);document.getElementById("debugEvents").textContent=compactJson(payload.recent_events||[],4200);
     }
-
-    function renderGexChart(gex) {
-      ensureCharts();
-      if (!gexChart) {
-        document.getElementById("gexChart").textContent = "图表库未加载 / Chart library not loaded.";
-        return;
-      }
-
-      const levels = (gex?.top_levels || [])
-        .map((x) => ({ strike: Number(x.strike), gexB: Number(x.gex_billion) }))
-        .filter((x) => Number.isFinite(x.strike) && Number.isFinite(x.gexB))
-        .sort((a, b) => a.strike - b.strike);
-
-      if (!levels.length) {
-        gexChart.clear();
-        gexChart.setOption({
-          title: { text: "暂无GEX层级 / No GEX levels", left: "center", top: "45%", textStyle: { color: "#6a7786", fontSize: 13 } },
-        });
-        return;
-      }
-
-      const pin = Number(gex?.pin);
-      const callWall = Number(gex?.call_wall);
-      const putWall = Number(gex?.put_wall);
-      const markLines = [];
-      if (Number.isFinite(pin)) markLines.push({ xAxis: pin, name: "Pin", lineStyle: { color: "#0d609f", width: 2, type: "solid" } });
-      if (Number.isFinite(callWall)) markLines.push({ xAxis: callWall, name: "Call Wall", lineStyle: { color: "#c1492f", width: 2, type: "dashed" } });
-      if (Number.isFinite(putWall)) markLines.push({ xAxis: putWall, name: "Put Wall", lineStyle: { color: "#0f8e63", width: 2, type: "dashed" } });
-
-      gexChart.setOption({
-        animationDuration: 280,
-        grid: { top: 26, left: 54, right: 26, bottom: 46 },
-        tooltip: {
-          trigger: "axis",
-          axisPointer: { type: "cross" },
-          valueFormatter: (val) => `${Number(val).toFixed(3)}B`,
-        },
-        xAxis: { type: "value", name: "行权价 Strike", nameLocation: "middle", nameGap: 28, axisLabel: { formatter: (v) => Number(v).toFixed(0) } },
-        yAxis: { type: "value", name: "GEX (B)", nameLocation: "middle", nameGap: 42 },
-        series: [
-          {
-            name: "GEX",
-            type: "bar",
-            barMaxWidth: 18,
-            data: levels.map((x) => [x.strike, x.gexB]),
-            itemStyle: { color: (p) => (p.value[1] >= 0 ? "#0f8e63" : "#c1492f") },
-            markLine: markLines.length
-              ? {
-                  symbol: ["none", "none"],
-                  label: { formatter: "{b}", position: "insideEndTop", color: "#314359" },
-                  data: markLines,
-                }
-              : undefined,
-          },
-        ],
-      });
+    async function fetchJson(url){const r=await fetch(url,{cache:"no-store"});if(!r.ok)throw new Error(`${r.status} ${r.statusText}`);return r.json()}
+    async function load(withDebug=true){
+      const index=document.getElementById("indexSelect").value;setStatus(`加载 ${index}...`);
+      try{
+        const tasks=[fetchJson(`/api/dashboard/snapshot?index=${encodeURIComponent(index)}`),fetchJson(`/api/dashboard/history?index=${encodeURIComponent(index)}&limit=140`)];if(withDebug)tasks.push(fetchJson(`/api/dashboard/debug?index=${encodeURIComponent(index)}`));
+        const [snapshot,history,debug]=await Promise.all(tasks);latestSnapshot=snapshot;latestHistory=history;
+        renderHeader(snapshot);renderTimeline(snapshot);renderGex(snapshot);renderTrend(history.items||[]);renderTables(snapshot);renderHistory(history.items||[]);if(withDebug&&debug)renderDebug(debug);
+        const action=snapshot?.strategy_event?.action||snapshot?.strategy?.tradeable?.action||"-";setStatus(`${index} 已加载 · Action=${action}`,action==="TRADE"?"good":"warn");
+        document.getElementById("footer").textContent=`Last update: ${snapshot?.timestamp_local||"-"} | Source: ${snapshot?.system?.source||"-"} | Refresh: ${snapshot?.system?.refresh_seconds||12}s`;
+      }catch(err){setStatus("加载失败","bad");document.getElementById("footer").textContent=`Load failed: ${err.message}`}
     }
-
-    function renderHistoryChart(items) {
-      ensureCharts();
-      if (!historyChart) {
-        document.getElementById("historyChart").textContent = "图表库未加载 / Chart library not loaded.";
-        return;
-      }
-
-      const sorted = (items || []).slice().reverse();
-      const labels = sorted.map((x) => (x.timestamp_local || "").slice(11));
-      const spotData = sorted.map((x) => Number(x.market?.spot));
-      const pinData = sorted.map((x) => Number(x.gex?.pin));
-
-      historyChart.setOption({
-        animationDuration: 220,
-        grid: { top: 20, left: 54, right: 28, bottom: 36 },
-        tooltip: { trigger: "axis" },
-        legend: { top: 0, right: 10, textStyle: { fontSize: 11 } },
-        xAxis: { type: "category", data: labels, boundaryGap: false, axisLabel: { fontSize: 10 } },
-        yAxis: { type: "value", scale: true },
-        series: [
-          {
-            name: "Spot",
-            type: "line",
-            smooth: true,
-            showSymbol: false,
-            lineStyle: { width: 2, color: "#0d609f" },
-            data: spotData.map((v) => (Number.isFinite(v) ? v : null)),
-          },
-          {
-            name: "Pin",
-            type: "line",
-            smooth: true,
-            showSymbol: false,
-            lineStyle: { width: 2, color: "#c1492f" },
-            data: pinData.map((v) => (Number.isFinite(v) ? v : null)),
-          },
-        ],
-      });
-    }
-
-    function renderSnapshot(data) {
-      latestSnapshot = data;
-      const market = data.market || {};
-      const options = data.options || {};
-      const summary = options.summary || {};
-      const gex = data.gex || {};
-      const signals = data.signals || {};
-      const strategy = data.strategy || {};
-      const core = strategy.core || {};
-      const tradeable = strategy.tradeable || {};
-      const checks = strategy.checks || tradeable.checks || {};
-
-      document.getElementById("spotValue").textContent = fmt(market.spot, 2);
-      document.getElementById("pinMeta").textContent =
-        `Pin ${fmt(gex.pin, 2)} | Distance ${fmt(gex.distance_to_pin, 2)} | ${data.index?.code || "-"}`;
-      document.getElementById("vixValue").textContent = fmt(market.vix, 2);
-
-      const biasPill = document.getElementById("biasPill");
-      biasPill.className = "pill";
-      biasPill.textContent = gex.direction_bias || "UNKNOWN";
-      if ((gex.direction_bias || "").includes("BULLISH")) biasPill.classList.add("good");
-      else if ((gex.direction_bias || "").includes("BEARISH")) biasPill.classList.add("bad");
-      else biasPill.classList.add("soft");
-
-      setActionUi(tradeable.action || "-", tradeable.primary_reason || signals.observation || "-");
-
-      document.getElementById("coreStrategy").textContent = core.strategy || "UNAVAILABLE";
-      document.getElementById("coreMeta").textContent =
-        `${core.direction || "-"} | ${core.confidence || "-"} | Distance ${fmt(core.distance, 2)}`;
-
-      const strikeText = Array.isArray(core.strikes) && core.strikes.length ? core.strikes.join(" / ") : "-";
-      const coreRows = [
-        row("描述 Description", core.description || core.reason || "-"),
-        row("行权价 Strikes", strikeText),
-        row("价差宽度 Spread Width", fmt(core.spread_width, 0)),
-        row("策略VIX VIX Used", fmt(core.vix, 2)),
-        row("净GEX Net GEX (B)", fmt(gex.net_gex_billion, 3)),
-        row("Call Wall", fmt(gex.call_wall, 2)),
-        row("Put Wall", fmt(gex.put_wall, 2)),
-        row("PCR OI", fmt(summary.put_call_oi_ratio, 3)),
-        row("PCR Vol", fmt(summary.put_call_volume_ratio, 3)),
-      ].join("");
-      document.getElementById("coreTable").innerHTML = coreRows;
-
-      const reasonList = (tradeable.reasons && tradeable.reasons.length) ? tradeable.reasons : (signals.reasons || []);
-      document.getElementById("reasonHead").textContent = `Bias: ${signals.direction_bias || gex.direction_bias || "-"}`;
-      document.getElementById("reasonList").innerHTML = reasonList.length
-        ? reasonList.map((x) => `<li>${x}</li>`).join("")
-        : `<li class="muted">暂无原因 / No reasons</li>`;
-
-      renderChecks(checks);
-      renderGexChart(gex);
-
-      function contractRows(items, primaryField, secondaryField) {
-        if (!items || !items.length) return `<tr><td colspan="8" class="muted">暂无数据 / No data</td></tr>`;
-        return items.slice(0, 10).map((x) => `
-          <tr>
-            <td>${x.side || "-"}</td>
-            <td>${x.expiry || "-"}</td>
-            <td>${fmt(x.strike, 2)}</td>
-            <td>${intFmt(x[primaryField])}</td>
-            <td>${intFmt(x[secondaryField])}</td>
-            <td>${fmt(x.iv, 4)}</td>
-            <td>${fmt(x.delta, 3)}</td>
-            <td>${fmt(x.gamma, 5)}</td>
-          </tr>
-        `).join("");
-      }
-
-      document.getElementById("topVolTable").innerHTML = contractRows(options.top_volume_contracts, "volume", "open_interest");
-      document.getElementById("topOiTable").innerHTML = contractRows(options.top_open_interest_contracts, "open_interest", "volume");
-
-      const source = data.system?.source || "schwab";
-      const refresh = data.system?.refresh_seconds || 12;
-      const err = data.system?.error;
-      document.getElementById("footer").textContent =
-        `更新时间 Last update: ${data.timestamp_local || "-"} | Source: ${source} | Refresh: ${refresh}s${err ? ` | Error: ${err}` : ""}`;
-    }
-
-    function renderHistory(payload) {
-      const items = payload.items || [];
-      renderHistoryChart(items);
-
-      const html = items.length
-        ? items.slice(0, 40).map((x) => {
-            const strategy = x.strategy || {};
-            const core = strategy.core || {};
-            const tradeable = strategy.tradeable || {};
-            return `
-              <tr>
-                <td>${x.timestamp_local || "-"}</td>
-                <td>${fmt(x.market?.spot, 2)}</td>
-                <td>${fmt(x.gex?.pin, 2)}</td>
-                <td>${x.gex?.direction_bias || "-"}</td>
-                <td>${core.strategy || "-"}</td>
-                <td>${tradeable.action || "-"}</td>
-                <td>${tradeable.primary_reason || x.signals?.observation || "-"}</td>
-              </tr>
-            `;
-          }).join("")
-        : `<tr><td colspan="7" class="muted">暂无历史 / No history yet</td></tr>`;
-      document.getElementById("historyTable").innerHTML = html;
-    }
-
-    function renderDebug(debugPayload) {
-      latestDebug = debugPayload;
-      if (!debugPayload || typeof debugPayload !== "object") {
-        document.getElementById("debugSummary").textContent = "No debug payload.";
-        return;
-      }
-      const summary = {
-        index: debugPayload.index,
-        service: debugPayload.service,
-        snapshot_summary: debugPayload.snapshot_summary,
-        log_files: debugPayload.log_files,
-      };
-      document.getElementById("debugSummary").textContent = compactJson(summary, 3500);
-      document.getElementById("debugErrors").textContent = compactJson(debugPayload.recent_errors || [], 3500);
-      document.getElementById("debugEvents").textContent = compactJson(debugPayload.recent_events || [], 3500);
-      document.getElementById("debugSnapshot").textContent = compactJson(latestSnapshot, 4500);
-    }
-
-    async function fetchJson(url) {
-      const r = await fetch(url, { cache: "no-store" });
-      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-      return r.json();
-    }
-
-    async function load(withDebug = true) {
-      const index = document.getElementById("indexSelect").value;
-      const statusEl = document.getElementById("headerStatus");
-      statusEl.textContent = `加载 ${index} / Loading ${index}...`;
-      try {
-        const tasks = [
-          fetchJson(`/api/dashboard/snapshot?index=${encodeURIComponent(index)}`),
-          fetchJson(`/api/dashboard/history?index=${encodeURIComponent(index)}&limit=120`),
-        ];
-        if (withDebug) {
-          tasks.push(fetchJson(`/api/dashboard/debug?index=${encodeURIComponent(index)}`));
-        }
-        const result = await Promise.all(tasks);
-        const snapshot = result[0];
-        const history = result[1];
-        const debugPayload = withDebug ? result[2] : null;
-
-        renderSnapshot(snapshot);
-        renderHistory(history);
-        if (withDebug && debugPayload) renderDebug(debugPayload);
-
-        const hasStrategy = !!snapshot?.strategy && Object.keys(snapshot.strategy).length > 0;
-        statusEl.textContent = hasStrategy
-          ? `${index} 已加载 / loaded`
-          : `${index} 缺少策略字段 / strategy missing`;
-      } catch (err) {
-        statusEl.textContent = "加载失败 / Load failed";
-        document.getElementById("footer").textContent = `加载失败 Load failed: ${err.message}`;
-      }
-    }
-
-    function schedule() {
-      if (timer) clearInterval(timer);
-      timer = setInterval(() => load(true), refreshMs);
-    }
-
-    function copyDebug() {
-      const payload = {
-        snapshot_summary: latestSnapshot ? {
-          timestamp_local: latestSnapshot.timestamp_local,
-          has_strategy: !!latestSnapshot.strategy,
-          strategy_keys: latestSnapshot.strategy ? Object.keys(latestSnapshot.strategy) : [],
-          system: latestSnapshot.system,
-        } : null,
-        debug: latestDebug || null,
-      };
-      const text = compactJson(payload, 12000);
-      navigator.clipboard.writeText(text).then(() => {
-        document.getElementById("headerStatus").textContent = "调试摘要已复制 / Debug copied";
-      }).catch(() => {
-        document.getElementById("headerStatus").textContent = "复制失败 / Copy failed";
-      });
-    }
-
-    window.addEventListener("resize", () => {
-      if (gexChart) gexChart.resize();
-      if (historyChart) historyChart.resize();
-    });
-
-    document.getElementById("refreshBtn").addEventListener("click", () => load(true));
-    document.getElementById("refreshDebugBtn").addEventListener("click", () => load(true));
-    document.getElementById("copyDebugBtn").addEventListener("click", copyDebug);
-    document.getElementById("toggleDebugBtn").addEventListener("click", () => {
-      const panel = document.getElementById("debugPanel");
-      const btn = document.getElementById("toggleDebugBtn");
-      panel.classList.toggle("hidden");
-      const showing = !panel.classList.contains("hidden");
-      btn.textContent = showing ? "收起调试 / Hide Debug" : "展开调试 / Show Debug";
-      if (showing) load(true);
-    });
-    document.getElementById("indexSelect").addEventListener("change", () => {
-      load(true);
-      schedule();
-    });
-
-    load(true);
-    schedule();
+    function schedule(){if(timer)clearInterval(timer);timer=setInterval(()=>load(true),REFRESH_MS)}
+    function copyDebug(){const payload={snapshot:latestSnapshot||null,history_count:(latestHistory?.items||[]).length,debug:latestDebug||null};navigator.clipboard.writeText(compactJson(payload,14000)).then(()=>setStatus("调试摘要已复制","good")).catch(()=>setStatus("复制失败","bad"))}
+    window.addEventListener("resize",()=>{if(gexChart)gexChart.resize();if(trendChart)trendChart.resize()});
+    document.getElementById("refreshBtn").addEventListener("click",()=>load(true));
+    document.getElementById("refreshDebugBtn").addEventListener("click",()=>load(true));
+    document.getElementById("copyDebugBtn").addEventListener("click",copyDebug);
+    document.getElementById("indexSelect").addEventListener("change",()=>{load(true);schedule()});
+    document.getElementById("toggleDebugBtn").addEventListener("click",()=>{const panel=document.getElementById("debugPanel"),btn=document.getElementById("toggleDebugBtn");panel.classList.toggle("hidden");const shown=!panel.classList.contains("hidden");btn.textContent=shown?"收起调试":"展开调试";if(shown)load(true)});
+    load(true);schedule();
   </script>
 </body>
 </html>

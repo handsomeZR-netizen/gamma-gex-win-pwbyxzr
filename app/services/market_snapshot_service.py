@@ -26,6 +26,26 @@ INDEX_SYMBOL_MAP: Dict[str, str] = {
 
 VIX_SYMBOL = "$VIX"
 
+CHECK_LABELS: Dict[str, tuple[str, str]] = {
+    "market_open_day": ("交易日", "Market Open Day"),
+    "entry_cutoff": ("入场截止", "Entry Cutoff"),
+    "absolute_cutoff": ("绝对截止", "Absolute Cutoff"),
+    "timing_blackout": ("时段黑窗", "Timing Blackout"),
+    "vix_available": ("VIX可用", "VIX Available"),
+    "vix_floor": ("VIX下限", "VIX Floor"),
+    "vix_spike": ("波动率尖峰", "VIX Spike"),
+    "realized_volatility": ("实现波动率", "Realized Volatility"),
+    "expected_move": ("预期波动", "Expected Move"),
+    "rsi": ("RSI区间", "RSI Range"),
+    "friday_policy": ("周五策略", "Friday Policy"),
+    "consecutive_down_days": ("连续下跌天数", "Consecutive Down Days"),
+    "gap_size": ("开盘缺口", "Gap Size"),
+    "gex_pin": ("GEX锚点", "GEX Pin"),
+    "core_signal": ("核心信号", "Core Signal"),
+    "core_strategy": ("策略可执行", "Core Strategy"),
+    "short_strike_proximity": ("短腿距离", "Short Strike Proximity"),
+}
+
 
 @dataclass
 class SnapshotState:
@@ -148,6 +168,166 @@ class MarketSnapshotService:
             },
         }
 
+    @staticmethod
+    def _extract_checks(strategy: Dict[str, Any] | None) -> Dict[str, Dict[str, Any]]:
+        if not isinstance(strategy, dict):
+            return {}
+        checks = strategy.get("checks")
+        if isinstance(checks, dict):
+            return checks
+        tradeable = strategy.get("tradeable")
+        if isinstance(tradeable, dict) and isinstance(tradeable.get("checks"), dict):
+            return tradeable.get("checks")  # type: ignore[return-value]
+        return {}
+
+    @staticmethod
+    def _check_label(name: str) -> tuple[str, str]:
+        return CHECK_LABELS.get(name, (name.replace("_", " "), name.replace("_", " ")))
+
+    def _build_strategy_ui(
+        self,
+        strategy: Dict[str, Any] | None,
+        *,
+        snapshot_timestamp_local: str | None,
+    ) -> Dict[str, Any]:
+        strategy = strategy if isinstance(strategy, dict) else {}
+        tradeable = strategy.get("tradeable") if isinstance(strategy.get("tradeable"), dict) else {}
+        checks = self._extract_checks(strategy)
+
+        action_raw = str((tradeable or {}).get("action") or "NO_TRADE").upper()
+        primary_reason = str((tradeable or {}).get("primary_reason") or "No primary reason.")
+        evaluated_at = (tradeable or {}).get("evaluated_at_et") or snapshot_timestamp_local
+
+        timeline: List[Dict[str, Any]] = []
+        passed_count = 0
+        blocking_fail_count = 0
+        soft_warn_count = 0
+
+        for order, (name, payload) in enumerate(checks.items(), start=1):
+            check = payload if isinstance(payload, dict) else {}
+            ok = bool(check.get("ok"))
+            blocking = bool(check.get("blocking", True))
+            detail = str(check.get("detail") or ("Check passed" if ok else "Check failed"))
+            severity = "pass" if ok else ("blocker" if blocking else "warning")
+            label_cn, label_en = self._check_label(name)
+            timeline.append(
+                {
+                    "order": order,
+                    "name": name,
+                    "label_cn": label_cn,
+                    "label_en": label_en,
+                    "ok": ok,
+                    "blocking": blocking,
+                    "detail": detail,
+                    "severity": severity,
+                    "ts_local": evaluated_at,
+                }
+            )
+            if ok:
+                passed_count += 1
+            elif blocking:
+                blocking_fail_count += 1
+            else:
+                soft_warn_count += 1
+
+        total = len(timeline)
+        score_base = (passed_count / total * 100.0) if total else 45.0
+        if action_raw == "TRADE":
+            score_base += 8.0
+        elif action_raw == "NO_TRADE":
+            score_base -= 4.0
+        score_base -= blocking_fail_count * 12.0
+        score_base -= soft_warn_count * 4.0
+        decision_score = round(max(0.0, min(100.0, score_base)), 1)
+
+        return {
+            "decision_score": decision_score,
+            "blocking_fail_count": blocking_fail_count,
+            "soft_warn_count": soft_warn_count,
+            "passed_count": passed_count,
+            "total_checks": total,
+            "action": action_raw,
+            "primary_reason": primary_reason,
+            "evaluated_at": evaluated_at,
+            "timeline": timeline,
+        }
+
+    def _decorate_snapshot(self, snapshot: Dict[str, Any]) -> None:
+        if not isinstance(snapshot, dict):
+            return
+        strategy = snapshot.get("strategy")
+        strategy_dict = strategy if isinstance(strategy, dict) else {}
+        strategy_ui = self._build_strategy_ui(
+            strategy_dict,
+            snapshot_timestamp_local=snapshot.get("timestamp_local"),
+        )
+        snapshot["strategy_ui"] = strategy_ui
+        if isinstance(strategy_dict, dict):
+            strategy_dict["ui"] = strategy_ui
+            snapshot["strategy"] = strategy_dict
+
+        tradeable = strategy_dict.get("tradeable") if isinstance(strategy_dict.get("tradeable"), dict) else {}
+        snapshot["strategy_event"] = {
+            "action": str((tradeable or {}).get("action") or "NO_TRADE"),
+            "primary_reason": str((tradeable or {}).get("primary_reason") or "No primary reason."),
+            "decision_score": strategy_ui.get("decision_score"),
+            "blocking_fail_count": strategy_ui.get("blocking_fail_count"),
+            "soft_warn_count": strategy_ui.get("soft_warn_count"),
+        }
+
+    def _compute_rule_stats(self, history_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        # Compute recent rule pass/fail profile to make debug view actionable.
+        window = history_items[-160:] if len(history_items) > 160 else history_items
+        raw_stats: Dict[str, Dict[str, int]] = {}
+
+        for item in window:
+            strategy = item.get("strategy") if isinstance(item, dict) else {}
+            checks = self._extract_checks(strategy if isinstance(strategy, dict) else {})
+            for name, payload in checks.items():
+                check = payload if isinstance(payload, dict) else {}
+                bucket = raw_stats.setdefault(
+                    name,
+                    {
+                        "seen": 0,
+                        "pass_count": 0,
+                        "fail_count": 0,
+                        "blocking_fail_count": 0,
+                        "soft_warn_count": 0,
+                    },
+                )
+                bucket["seen"] += 1
+                ok = bool(check.get("ok"))
+                blocking = bool(check.get("blocking", True))
+                if ok:
+                    bucket["pass_count"] += 1
+                else:
+                    bucket["fail_count"] += 1
+                    if blocking:
+                        bucket["blocking_fail_count"] += 1
+                    else:
+                        bucket["soft_warn_count"] += 1
+
+        out: List[Dict[str, Any]] = []
+        for name, bucket in raw_stats.items():
+            seen = max(bucket["seen"], 1)
+            label_cn, label_en = self._check_label(name)
+            out.append(
+                {
+                    "name": name,
+                    "label_cn": label_cn,
+                    "label_en": label_en,
+                    "seen": bucket["seen"],
+                    "pass_count": bucket["pass_count"],
+                    "fail_count": bucket["fail_count"],
+                    "blocking_fail_count": bucket["blocking_fail_count"],
+                    "soft_warn_count": bucket["soft_warn_count"],
+                    "pass_rate": round(bucket["pass_count"] / seen * 100.0, 1),
+                    "blocking_fail_rate": round(bucket["blocking_fail_count"] / seen * 100.0, 1),
+                }
+            )
+        out.sort(key=lambda x: (-int(x["blocking_fail_count"]), x["name"]))
+        return out
+
     def refresh_snapshot(self, index_code: str) -> Dict[str, Any]:
         index_code = index_code.upper()
         schwab_symbol = self._resolve_schwab_symbol(index_code)
@@ -191,6 +371,7 @@ class MarketSnapshotService:
                 "source": "schwab",
                 "error": None,
             }
+            self._decorate_snapshot(snapshot)
             elapsed_ms = round((time.perf_counter() - started_at) * 1000.0, 2)
             strategy = snapshot.get("strategy", {})
             checks = strategy.get("checks", {}) if isinstance(strategy, dict) else {}
@@ -251,6 +432,7 @@ class MarketSnapshotService:
                     "error": str(exc),
                 },
             }
+            self._decorate_snapshot(error_snapshot)
             elapsed_ms = round((time.perf_counter() - started_at) * 1000.0, 2)
             event = {
                 "timestamp_utc": now_utc.isoformat(),
@@ -339,11 +521,13 @@ class MarketSnapshotService:
             snapshot = state.snapshot if state else None
             recent_events = list(self._recent_events)[-80:]
             recent_errors = list(self._recent_errors)[-50:]
-            cache_size = len(self._history_cache.get(index_code, []))
+            history_items = list(self._history_cache.get(index_code, []))
+            cache_size = len(history_items)
 
         strategy = snapshot.get("strategy") if isinstance(snapshot, dict) else {}
         checks = strategy.get("checks", {}) if isinstance(strategy, dict) else {}
         tradeable = strategy.get("tradeable", {}) if isinstance(strategy, dict) else {}
+        rule_stats = self._compute_rule_stats(history_items)
         return {
             "index": index_code,
             "service": {
@@ -363,8 +547,10 @@ class MarketSnapshotService:
                 "strategy_action": tradeable.get("action"),
                 "strategy_primary_reason": tradeable.get("primary_reason"),
                 "strategy_checks_count": len(checks),
+                "decision_score": (snapshot.get("strategy_ui") or {}).get("decision_score") if isinstance(snapshot, dict) else None,
                 "strategy_keys": sorted(strategy.keys()) if isinstance(strategy, dict) else [],
             },
+            "rule_stats": rule_stats,
             "recent_errors": recent_errors,
             "recent_events": recent_events,
             "log_files": {
