@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+*.log.*
+*.gz
+
+# Data files
+data/*.json
+data/*.csv
+data/*.db
+data/*.sqlite
+data/*.jsonl
+data/logs/*
+!data/logs/.gitkeep
+data/tmp/*
+!data/tmp/.gitkeep
+
+# Keep data directory structure but ignore contents
+!data/.gitkeep
+
+# Environment
+.env
+.env.*
+!.env.example
+.venv
+venv/
+conda-meta/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+market_data.db
+gex_blackbox.db
+archive_legacy/
+*.deb
+
+# Temporary frontend reverse-engineering artifacts
+_tmp_*.js
+_tmp_*
+
+# Local runtime marker files
+GAMMA_TRADING_MODE
+alpaca_0dte_checkpoint.json

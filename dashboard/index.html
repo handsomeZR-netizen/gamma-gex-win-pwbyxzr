@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gamma 策略看板 / Strategy Dashboard</title>
+  <style>
+    :root {
+      --bg: #edf3f9;
+      --panel: #f8fbff;
+      --card: #ffffff;
+      --line: #d7e2ef;
+      --text: #0f1825;
+      --muted: #5f6b7a;
+      --blue: #0a5e9f;
+      --green: #0f8e63;
+      --red: #c1492f;
+      --amber: #a56b00;
+      --green-soft: #dbf7ed;
+      --red-soft: #fee5e0;
+      --amber-soft: #fff2d9;
+      --shadow: 0 8px 20px rgba(15, 24, 37, 0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 88% -12%, #d9e9fb 0%, transparent 40%),
+        linear-gradient(140deg, #f5f9fd 0%, var(--bg) 45%, #e7eef6 100%);
+    }
+    .container {
+      max-width: 1580px;
+      margin: 0 auto;
+      padding: 18px 16px 28px;
+    }
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      letter-spacing: 0.3px;
+    }
+    .sub {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: var(--shadow);
+    }
+    select, button {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 14px;
+      padding: 8px 11px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+    }
+    button.primary {
+      border: none;
+      color: #fff;
+      background: linear-gradient(180deg, #1673b8, #0d609f);
+    }
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 8px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+    .k {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .v {
+      font-size: 29px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .mono { font-family: Consolas, "Courier New", monospace; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .pill {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--blue);
+    }
+    .pill.good { background: var(--green); }
+    .pill.bad { background: var(--red); }
+    .pill.soft { background: var(--amber); }
+    .action-main {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1;
+      margin-top: 2px;
+      letter-spacing: 0.4px;
+    }
+    .action-main.good { color: var(--green); }
+    .action-main.bad { color: var(--red); }
+    .chart {
+      height: 340px;
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #fcfeff, #f5f9fd);
+    }
+    .chart.small { height: 250px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 7px 5px;
+      text-align: left;
+      white-space: nowrap;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .checks-flow {
+      display: flex;
+      align-items: stretch;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .check-node {
+      position: relative;
+      min-width: 240px;
+      max-width: 300px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin-right: 26px;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .check-node::after {
+      content: ">";
+      position: absolute;
+      right: -19px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #8a99ac;
+      font-weight: 700;
+    }
+    .check-node:last-child { margin-right: 0; }
+    .check-node:last-child::after { content: ""; }
+    .check-node.pass { border-color: #bfead8; background: var(--green-soft); }
+    .check-node.fail { border-color: #f3c2b8; background: var(--red-soft); }
+    .check-node.soft { border-color: #f3ddb2; background: var(--amber-soft); }
+    .check-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .check-detail {
+      font-size: 12px;
+      color: #2a3748;
+      white-space: normal;
+      line-height: 1.35;
+    }
+    .reason-list {
+      margin: 8px 0 0 17px;
+      padding: 0;
+      font-size: 13px;
+    }
+    .reason-list li { margin-bottom: 5px; }
+    .split {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .debug-toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .debug-panel {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fbfdff;
+    }
+    .debug-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .debug-box {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      padding: 8px;
+    }
+    .debug-title {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 11px;
+      max-height: 210px;
+      overflow: auto;
+      color: #163049;
+    }
+    .hidden { display: none; }
+    .footer {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    @media (max-width: 1200px) {
+      .span-3, .span-4, .span-5, .span-6, .span-7, .span-8 { grid-column: span 12; }
+      .debug-grid { grid-template-columns: 1fr; }
+      .chart { height: 300px; }
+      .v { font-size: 24px; }
+      .action-main { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Gamma 策略看板 / Strategy Dashboard</h1>
+        <div class="sub">中文业务视图 + English technical fields，支持完整策略链路与调试面板。</div>
+      </div>
+      <div class="controls">
+        <select id="indexSelect">
+          <option value="SPX">SPX</option>
+          <option value="NDX">NDX</option>
+        </select>
+        <button id="refreshBtn" class="primary">立即刷新 / Refresh</button>
+        <span id="headerStatus" class="status">初始化中 / Initializing...</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card span-3">
+        <div class="k">现价与Pin / Spot & Pin</div>
+        <div id="spotValue" class="v">-</div>
+        <div id="pinMeta" class="small muted">Pin - | Distance -</div>
+      </div>
+
+      <div class="card span-3">
+        <div class="k">波动率与偏向 / VIX & Bias</div>
+        <div id="vixValue" class="v">-</div>
+        <span id="biasPill" class="pill">UNKNOWN</span>
+      </div>
+
+      <div class="card span-3">
+        <div class="k">交易动作 / Trade Action</div>
+        <div id="actionMain" class="action-main">-</div>
+        <div id="actionReason" class="small muted">-</div>
+      </div>
+
+      <div class="card span-3">
+        <div class="k">核心策略 / Core Strategy</div>
+        <div id="coreStrategy" class="v" style="font-size:22px;">-</div>
+        <div id="coreMeta" class="small muted">-</div>
+      </div>
+
+      <div class="card span-7">
+        <div class="k">GEX结构图 / GEX Structure (Top Levels)</div>
+        <div id="gexChart" class="chart"></div>
+      </div>
+
+      <div class="card span-5 split">
+        <div>
+          <div class="k">策略详情 / Core Setup Details</div>
+          <table>
+            <tbody id="coreTable"></tbody>
+          </table>
+        </div>
+        <div>
+          <div class="k">信号原因 / Signal Reasons</div>
+          <div id="reasonHead" class="mono small"></div>
+          <ul id="reasonList" class="reason-list"></ul>
+        </div>
+      </div>
+
+      <div class="card span-12">
+        <div class="k">决策流程 / Decision Flow (Checks)</div>
+        <div id="checksFlow" class="checks-flow"></div>
+      </div>
+
+      <div class="card span-12">
+        <div class="k">调试面板 / Debug Panel</div>
+        <div class="debug-toolbar">
+          <button id="toggleDebugBtn">展开调试 / Show Debug</button>
+          <button id="refreshDebugBtn">刷新调试 / Reload Debug</button>
+          <button id="copyDebugBtn">复制调试摘要 / Copy Debug</button>
+        </div>
+        <div id="debugPanel" class="debug-panel hidden">
+          <div class="debug-grid">
+            <div class="debug-box">
+              <div class="debug-title">服务摘要 / Service Summary</div>
+              <pre id="debugSummary">-</pre>
+            </div>
+            <div class="debug-box">
+              <div class="debug-title">最近错误 / Recent Errors</div>
+              <pre id="debugErrors">-</pre>
+            </div>
+            <div class="debug-box">
+              <div class="debug-title">最近事件 / Recent Events</div>
+              <pre id="debugEvents">-</pre>
+            </div>
+            <div class="debug-box">
+              <div class="debug-title">Snapshot JSON (Truncated)</div>
+              <pre id="debugSnapshot">-</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card span-6">
+        <div class="k">成交量前十 / Top Volume Contracts</div>
+        <table>
+          <thead>
+            <tr>
+              <th>方向 Side</th><th>到期 Expiry</th><th>行权 Strike</th><th>成交 Vol</th><th>持仓 OI</th><th>IV</th><th>Delta</th><th>Gamma</th>
+            </tr>
+          </thead>
+          <tbody id="topVolTable"></tbody>
+        </table>
+      </div>
+
+      <div class="card span-6">
+        <div class="k">持仓量前十 / Top Open Interest Contracts</div>
+        <table>
+          <thead>
+            <tr>
+              <th>方向 Side</th><th>到期 Expiry</th><th>行权 Strike</th><th>持仓 OI</th><th>成交 Vol</th><th>IV</th><th>Delta</th><th>Gamma</th>
+            </tr>
+          </thead>
+          <tbody id="topOiTable"></tbody>
+        </table>
+      </div>
+
+      <div class="card span-12 split">
+        <div>
+          <div class="k">历史回放 / History Replay (Spot vs Pin)</div>
+          <div id="historyChart" class="chart small"></div>
+        </div>
+        <div>
+          <div class="k">最近快照 / Recent Snapshots</div>
+          <table>
+            <thead>
+              <tr>
+                <th>时间 Time</th><th>现价 Spot</th><th>Pin</th><th>偏向 Bias</th><th>策略 Core</th><th>动作 Action</th><th>主因 Primary Reason</th>
+              </tr>
+            </thead>
+            <tbody id="historyTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="footer" class="footer">加载中 / Loading...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script>
+    const refreshMs = 12000;
+    let timer = null;
+    let gexChart = null;
+    let historyChart = null;
+    let latestSnapshot = null;
+    let latestDebug = null;
+
+    const CHECK_LABELS = {
+      market_open_day: "交易日 / Market Open Day",
+      entry_cutoff: "入场截止 / Entry Cutoff",
+      absolute_cutoff: "绝对截止 / Absolute Cutoff",
+      timing_blackout: "时段过滤 / Timing Window",
+      vix_available: "VIX可用 / VIX Available",
+      vix_floor: "VIX底线 / VIX Floor",
+      vix_spike: "VIX突增 / VIX Spike Filter",
+      realized_volatility: "实现波动率 / Realized Volatility",
+      expected_move: "预期波动 / Expected Move",
+      rsi: "RSI过滤 / RSI Filter",
+      friday_policy: "周五策略 / Friday Policy",
+      consecutive_down_days: "连跌天数 / Down Days",
+      gap_size: "跳空幅度 / Gap Size",
+      gex_pin: "GEX Pin可用 / GEX Pin",
+      core_signal: "核心信号 / Core Signal",
+      core_strategy: "核心策略 / Core Strategy",
+      short_strike_proximity: "短腿距离 / Short Strike Proximity",
+    };
+
+    const CHECK_ORDER = [
+      "market_open_day",
+      "entry_cutoff",
+      "absolute_cutoff",
+      "timing_blackout",
+      "vix_available",
+      "vix_floor",
+      "vix_spike",
+      "realized_volatility",
+      "expected_move",
+      "rsi",
+      "friday_policy",
+      "consecutive_down_days",
+      "gap_size",
+      "gex_pin",
+      "core_signal",
+      "core_strategy",
+      "short_strike_proximity",
+    ];
+
+    function fmt(v, d = 2) {
+      if (v === null || v === undefined || Number.isNaN(Number(v))) return "-";
+      return Number(v).toFixed(d);
+    }
+
+    function intFmt(v) {
+      if (v === null || v === undefined || Number.isNaN(Number(v))) return "-";
+      return Number(v).toLocaleString();
+    }
+
+    function row(k, v) {
+      return `<tr><th>${k}</th><td>${v}</td></tr>`;
+    }
+
+    function compactJson(v, maxLen = 5000) {
+      let txt = JSON.stringify(v ?? null, null, 2);
+      if (txt.length > maxLen) txt = txt.slice(0, maxLen) + "\n... (truncated)";
+      return txt;
+    }
+
+    function hasEcharts() {
+      return !!window.echarts;
+    }
+
+    function ensureCharts() {
+      if (!hasEcharts()) return;
+      if (!gexChart) gexChart = echarts.init(document.getElementById("gexChart"));
+      if (!historyChart) historyChart = echarts.init(document.getElementById("historyChart"));
+    }
+
+    function setActionUi(action, reason) {
+      const actionMain = document.getElementById("actionMain");
+      const merged = action ? `${action} / ${action === "TRADE" ? "可交易" : action === "NO_TRADE" ? "不交易" : "未知"}` : "-";
+      actionMain.textContent = merged;
+      actionMain.className = "action-main";
+      if (action === "TRADE") actionMain.classList.add("good");
+      if (action === "NO_TRADE") actionMain.classList.add("bad");
+      document.getElementById("actionReason").textContent = reason || "-";
+    }
+
+    function renderChecks(checks) {
+      const container = document.getElementById("checksFlow");
+      const entries = checks && typeof checks === "object" ? Object.entries(checks) : [];
+      if (!entries.length) {
+        container.innerHTML = `<div class="muted small">暂无检查项 / No checks available.</div>`;
+        return;
+      }
+
+      const known = CHECK_ORDER.filter((k) => checks[k]).map((k) => [k, checks[k]]);
+      const extra = entries.filter(([k]) => !CHECK_ORDER.includes(k));
+      const sorted = known.concat(extra);
+
+      container.innerHTML = sorted.map(([name, check]) => {
+        const label = CHECK_LABELS[name] || `${name} / ${name}`;
+        const ok = !!check?.ok;
+        const blocking = check?.blocking !== false;
+        const cls = blocking ? (ok ? "pass" : "fail") : "soft";
+        return `
+          <div class="check-node ${cls}">
+            <div class="check-title">${label}</div>
+            <div class="check-detail">${check?.detail || "-"}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderGexChart(gex) {
+      ensureCharts();
+      if (!gexChart) {
+        document.getElementById("gexChart").textContent = "图表库未加载 / Chart library not loaded.";
+        return;
+      }
+
+      const levels = (gex?.top_levels || [])
+        .map((x) => ({ strike: Number(x.strike), gexB: Number(x.gex_billion) }))
+        .filter((x) => Number.isFinite(x.strike) && Number.isFinite(x.gexB))
+        .sort((a, b) => a.strike - b.strike);
+
+      if (!levels.length) {
+        gexChart.clear();
+        gexChart.setOption({
+          title: { text: "暂无GEX层级 / No GEX levels", left: "center", top: "45%", textStyle: { color: "#6a7786", fontSize: 13 } },
+        });
+        return;
+      }
+
+      const pin = Number(gex?.pin);
+      const callWall = Number(gex?.call_wall);
+      const putWall = Number(gex?.put_wall);
+      const markLines = [];
+      if (Number.isFinite(pin)) markLines.push({ xAxis: pin, name: "Pin", lineStyle: { color: "#0d609f", width: 2, type: "solid" } });
+      if (Number.isFinite(callWall)) markLines.push({ xAxis: callWall, name: "Call Wall", lineStyle: { color: "#c1492f", width: 2, type: "dashed" } });
+      if (Number.isFinite(putWall)) markLines.push({ xAxis: putWall, name: "Put Wall", lineStyle: { color: "#0f8e63", width: 2, type: "dashed" } });
+
+      gexChart.setOption({
+        animationDuration: 280,
+        grid: { top: 26, left: 54, right: 26, bottom: 46 },
+        tooltip: {
+          trigger: "axis",
+          axisPointer: { type: "cross" },
+          valueFormatter: (val) => `${Number(val).toFixed(3)}B`,
+        },
+        xAxis: { type: "value", name: "行权价 Strike", nameLocation: "middle", nameGap: 28, axisLabel: { formatter: (v) => Number(v).toFixed(0) } },
+        yAxis: { type: "value", name: "GEX (B)", nameLocation: "middle", nameGap: 42 },
+        series: [
+          {
+            name: "GEX",
+            type: "bar",
+            barMaxWidth: 18,
+            data: levels.map((x) => [x.strike, x.gexB]),
+            itemStyle: { color: (p) => (p.value[1] >= 0 ? "#0f8e63" : "#c1492f") },
+            markLine: markLines.length
+              ? {
+                  symbol: ["none", "none"],
+                  label: { formatter: "{b}", position: "insideEndTop", color: "#314359" },
+                  data: markLines,
+                }
+              : undefined,
+          },
+        ],
+      });
+    }
+
+    function renderHistoryChart(items) {
+      ensureCharts();
+      if (!historyChart) {
+        document.getElementById("historyChart").textContent = "图表库未加载 / Chart library not loaded.";
+        return;
+      }
+
+      const sorted = (items || []).slice().reverse();
+      const labels = sorted.map((x) => (x.timestamp_local || "").slice(11));
+      const spotData = sorted.map((x) => Number(x.market?.spot));
+      const pinData = sorted.map((x) => Number(x.gex?.pin));
+
+      historyChart.setOption({
+        animationDuration: 220,
+        grid: { top: 20, left: 54, right: 28, bottom: 36 },
+        tooltip: { trigger: "axis" },
+        legend: { top: 0, right: 10, textStyle: { fontSize: 11 } },
+        xAxis: { type: "category", data: labels, boundaryGap: false, axisLabel: { fontSize: 10 } },
+        yAxis: { type: "value", scale: true },
+        series: [
+          {
+            name: "Spot",
+            type: "line",
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { width: 2, color: "#0d609f" },
+            data: spotData.map((v) => (Number.isFinite(v) ? v : null)),
+          },
+          {
+            name: "Pin",
+            type: "line",
+            smooth: true,
+            showSymbol: false,
+            lineStyle: { width: 2, color: "#c1492f" },
+            data: pinData.map((v) => (Number.isFinite(v) ? v : null)),
+          },
+        ],
+      });
+    }
+
+    function renderSnapshot(data) {
+      latestSnapshot = data;
+      const market = data.market || {};
+      const options = data.options || {};
+      const summary = options.summary || {};
+      const gex = data.gex || {};
+      const signals = data.signals || {};
+      const strategy = data.strategy || {};
+      const core = strategy.core || {};
+      const tradeable = strategy.tradeable || {};
+      const checks = strategy.checks || tradeable.checks || {};
+
+      document.getElementById("spotValue").textContent = fmt(market.spot, 2);
+      document.getElementById("pinMeta").textContent =
+        `Pin ${fmt(gex.pin, 2)} | Distance ${fmt(gex.distance_to_pin, 2)} | ${data.index?.code || "-"}`;
+      document.getElementById("vixValue").textContent = fmt(market.vix, 2);
+
+      const biasPill = document.getElementById("biasPill");
+      biasPill.className = "pill";
+      biasPill.textContent = gex.direction_bias || "UNKNOWN";
+      if ((gex.direction_bias || "").includes("BULLISH")) biasPill.classList.add("good");
+      else if ((gex.direction_bias || "").includes("BEARISH")) biasPill.classList.add("bad");
+      else biasPill.classList.add("soft");
+
+      setActionUi(tradeable.action || "-", tradeable.primary_reason || signals.observation || "-");
+
+      document.getElementById("coreStrategy").textContent = core.strategy || "UNAVAILABLE";
+      document.getElementById("coreMeta").textContent =
+        `${core.direction || "-"} | ${core.confidence || "-"} | Distance ${fmt(core.distance, 2)}`;
+
+      const strikeText = Array.isArray(core.strikes) && core.strikes.length ? core.strikes.join(" / ") : "-";
+      const coreRows = [
+        row("描述 Description", core.description || core.reason || "-"),
+        row("行权价 Strikes", strikeText),
+        row("价差宽度 Spread Width", fmt(core.spread_width, 0)),
+        row("策略VIX VIX Used", fmt(core.vix, 2)),
+        row("净GEX Net GEX (B)", fmt(gex.net_gex_billion, 3)),
+        row("Call Wall", fmt(gex.call_wall, 2)),
+        row("Put Wall", fmt(gex.put_wall, 2)),
+        row("PCR OI", fmt(summary.put_call_oi_ratio, 3)),
+        row("PCR Vol", fmt(summary.put_call_volume_ratio, 3)),
+      ].join("");
+      document.getElementById("coreTable").innerHTML = coreRows;
+
+      const reasonList = (tradeable.reasons && tradeable.reasons.length) ? tradeable.reasons : (signals.reasons || []);
+      document.getElementById("reasonHead").textContent = `Bias: ${signals.direction_bias || gex.direction_bias || "-"}`;
+      document.getElementById("reasonList").innerHTML = reasonList.length
+        ? reasonList.map((x) => `<li>${x}</li>`).join("")
+        : `<li class="muted">暂无原因 / No reasons</li>`;
+
+      renderChecks(checks);
+      renderGexChart(gex);
+
+      function contractRows(items, primaryField, secondaryField) {
+        if (!items || !items.length) return `<tr><td colspan="8" class="muted">暂无数据 / No data</td></tr>`;
+        return items.slice(0, 10).map((x) => `
+          <tr>
+            <td>${x.side || "-"}</td>
+            <td>${x.expiry || "-"}</td>
+            <td>${fmt(x.strike, 2)}</td>
+            <td>${intFmt(x[primaryField])}</td>
+            <td>${intFmt(x[secondaryField])}</td>
+            <td>${fmt(x.iv, 4)}</td>
+            <td>${fmt(x.delta, 3)}</td>
+            <td>${fmt(x.gamma, 5)}</td>
+          </tr>
+        `).join("");
+      }
+
+      document.getElementById("topVolTable").innerHTML = contractRows(options.top_volume_contracts, "volume", "open_interest");
+      document.getElementById("topOiTable").innerHTML = contractRows(options.top_open_interest_contracts, "open_interest", "volume");
+
+      const source = data.system?.source || "schwab";
+      const refresh = data.system?.refresh_seconds || 12;
+      const err = data.system?.error;
+      document.getElementById("footer").textContent =
+        `更新时间 Last update: ${data.timestamp_local || "-"} | Source: ${source} | Refresh: ${refresh}s${err ? ` | Error: ${err}` : ""}`;
+    }
+
+    function renderHistory(payload) {
+      const items = payload.items || [];
+      renderHistoryChart(items);
+
+      const html = items.length
+        ? items.slice(0, 40).map((x) => {
+            const strategy = x.strategy || {};
+            const core = strategy.core || {};
+            const tradeable = strategy.tradeable || {};
+            return `
+              <tr>
+                <td>${x.timestamp_local || "-"}</td>
+                <td>${fmt(x.market?.spot, 2)}</td>
+                <td>${fmt(x.gex?.pin, 2)}</td>
+                <td>${x.gex?.direction_bias || "-"}</td>
+                <td>${core.strategy || "-"}</td>
+                <td>${tradeable.action || "-"}</td>
+                <td>${tradeable.primary_reason || x.signals?.observation || "-"}</td>
+              </tr>
+            `;
+          }).join("")
+        : `<tr><td colspan="7" class="muted">暂无历史 / No history yet</td></tr>`;
+      document.getElementById("historyTable").innerHTML = html;
+    }
+
+    function renderDebug(debugPayload) {
+      latestDebug = debugPayload;
+      if (!debugPayload || typeof debugPayload !== "object") {
+        document.getElementById("debugSummary").textContent = "No debug payload.";
+        return;
+      }
+      const summary = {
+        index: debugPayload.index,
+        service: debugPayload.service,
+        snapshot_summary: debugPayload.snapshot_summary,
+        log_files: debugPayload.log_files,
+      };
+      document.getElementById("debugSummary").textContent = compactJson(summary, 3500);
+      document.getElementById("debugErrors").textContent = compactJson(debugPayload.recent_errors || [], 3500);
+      document.getElementById("debugEvents").textContent = compactJson(debugPayload.recent_events || [], 3500);
+      document.getElementById("debugSnapshot").textContent = compactJson(latestSnapshot, 4500);
+    }
+
+    async function fetchJson(url) {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    }
+
+    async function load(withDebug = true) {
+      const index = document.getElementById("indexSelect").value;
+      const statusEl = document.getElementById("headerStatus");
+      statusEl.textContent = `加载 ${index} / Loading ${index}...`;
+      try {
+        const tasks = [
+          fetchJson(`/api/dashboard/snapshot?index=${encodeURIComponent(index)}`),
+          fetchJson(`/api/dashboard/history?index=${encodeURIComponent(index)}&limit=120`),
+        ];
+        if (withDebug) {
+          tasks.push(fetchJson(`/api/dashboard/debug?index=${encodeURIComponent(index)}`));
+        }
+        const result = await Promise.all(tasks);
+        const snapshot = result[0];
+        const history = result[1];
+        const debugPayload = withDebug ? result[2] : null;
+
+        renderSnapshot(snapshot);
+        renderHistory(history);
+        if (withDebug && debugPayload) renderDebug(debugPayload);
+
+        const hasStrategy = !!snapshot?.strategy && Object.keys(snapshot.strategy).length > 0;
+        statusEl.textContent = hasStrategy
+          ? `${index} 已加载 / loaded`
+          : `${index} 缺少策略字段 / strategy missing`;
+      } catch (err) {
+        statusEl.textContent = "加载失败 / Load failed";
+        document.getElementById("footer").textContent = `加载失败 Load failed: ${err.message}`;
+      }
+    }
+
+    function schedule() {
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => load(true), refreshMs);
+    }
+
+    function copyDebug() {
+      const payload = {
+        snapshot_summary: latestSnapshot ? {
+          timestamp_local: latestSnapshot.timestamp_local,
+          has_strategy: !!latestSnapshot.strategy,
+          strategy_keys: latestSnapshot.strategy ? Object.keys(latestSnapshot.strategy) : [],
+          system: latestSnapshot.system,
+        } : null,
+        debug: latestDebug || null,
+      };
+      const text = compactJson(payload, 12000);
+      navigator.clipboard.writeText(text).then(() => {
+        document.getElementById("headerStatus").textContent = "调试摘要已复制 / Debug copied";
+      }).catch(() => {
+        document.getElementById("headerStatus").textContent = "复制失败 / Copy failed";
+      });
+    }
+
+    window.addEventListener("resize", () => {
+      if (gexChart) gexChart.resize();
+      if (historyChart) historyChart.resize();
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", () => load(true));
+    document.getElementById("refreshDebugBtn").addEventListener("click", () => load(true));
+    document.getElementById("copyDebugBtn").addEventListener("click", copyDebug);
+    document.getElementById("toggleDebugBtn").addEventListener("click", () => {
+      const panel = document.getElementById("debugPanel");
+      const btn = document.getElementById("toggleDebugBtn");
+      panel.classList.toggle("hidden");
+      const showing = !panel.classList.contains("hidden");
+      btn.textContent = showing ? "收起调试 / Hide Debug" : "展开调试 / Show Debug";
+      if (showing) load(true);
+    });
+    document.getElementById("indexSelect").addEventListener("change", () => {
+      load(true);
+      schedule();
+    });
+
+    load(true);
+    schedule();
+  </script>
+</body>
+</html>
